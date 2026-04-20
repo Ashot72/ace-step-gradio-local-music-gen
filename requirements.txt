@@ -1,0 +1,39 @@
+# PyTorch (Intel XPU wheels — keep this line first for pip)
+--extra-index-url https://download.pytorch.org/whl/xpu
+torch
+torchaudio
+torchvision
+
+# Hugging Face & diffusion stack
+transformers>=4.51.0,<4.58.0
+safetensors>=0.4.0
+diffusers>=0.37.0
+accelerate>=1.12.0
+
+# Quantization & tensor utilities
+torchao<0.16.0
+einops>=0.8.1
+vector-quantize-pytorch>=1.27.15
+numba>=0.63.1
+
+# Training / adapters / experiment tracking (ACE-Step ecosystem)
+lightning>=2.0.0
+peft>=0.18.0
+lycoris-lora
+tensorboard>=2.20.0
+modelscope
+
+# Web UI
+gradio==6.2.0
+
+# Audio & numerics
+soundfile>=0.13.1
+scipy>=1.10.1
+
+# Plotting
+matplotlib>=3.7.5
+
+# General utilities
+loguru>=0.7.3
+diskcache>=5.6.0
+typer-slim>=0.21.1

@@ -1,0 +1,42 @@
+#app_title {
+  margin-bottom: 0.75rem;
+  text-align: center;
+}
+
+#app_title h1,
+#app_title h2 {
+  text-align: center;
+}
+
+/* Song title: Gradio block can get overflow:auto + min-width quirks → bogus scrollbar */
+#song_title {
+  overflow: visible !important;
+  min-width: 0 !important;
+}
+
+#song_title textarea,
+#song_title input {
+  overflow-x: hidden !important;
+  overflow-y: hidden !important;
+}
+
+/* Status is text-only (messages/errors); progress runs on Output via `show_progress_on`. */
+#status_line {
+  min-height: 1.5rem;
+  overflow: visible !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+/* Output empty state: hide default solo / music glyph (no audio yet) */
+#out_audio:not(:has(audio)) svg {
+  display: none !important;
+}
+
+/* Footer: Gradio treats footer_links=[] as falsy and still shows API / Gradio / Settings — hide here */
+.gradio-container footer,
+gradio-app footer {
+  display: none !important;
+}

@@ -1,0 +1,8 @@
+venv/
+vendor/
+__pycache__/
+.cache/
+checkpoints/
+*.py[cod]
+.env
+.DS_Store
