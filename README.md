@@ -10,6 +10,8 @@ The backend uses ACE-Step’s full pipeline, including a planner LLM, diffusion 
 
 The generated traks are saved in the output folder.
 
+![ACE-Step](ACE-step-1.5.png)
+
 #### 👉 Links & Resources
 - [ACE-Step/Ace-Step1.5](https://huggingface.co/ACE-Step/Ace-Step1.5)
 - [Gradio Web Interface](https://www.gradio.app/)
