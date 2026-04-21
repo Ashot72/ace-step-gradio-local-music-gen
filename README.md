@@ -10,6 +10,14 @@ The backend uses ACE-Step’s full pipeline, including a planner LLM, diffusion 
 
 The generated traks are saved in the output folder.
 
+#### 🎤 Audio2Audio Extension (Speech-Based Generation)
+
+I extended the app with an Audio2Audio feature. You can now upload or record a reference audio clip to guide generation—not just rely on text prompts.
+
+A new control, “Refer audio strength” (0–1), determines how strongly the output follows the reference audio versus your tags and lyrics:
+
+
+
 ![ACE-Step](ACE-step-1.5.png)
 
 #### 👉 Links & Resources
@@ -40,4 +48,6 @@ Install Microsoft’s [Python Debugger](https://marketplace.visualstudio.com/ite
 
 Open the Run view (View → Run or Ctrl+Shift+D) to access the debug configuration
 
-📺 **Video** [Watch on YouTube](https://youtu.be/Bi1mNCWind8) 
+📺 **Video (Music Generation)** [Watch on YouTube](https://youtu.be/Bi1mNCWind8) 
+
+📺 **Video (Audio2Audio)** [Watch on YouTube](https://youtu.be/_mPnARfiBCc) 

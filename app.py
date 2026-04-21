@@ -6,8 +6,23 @@ import gradio as gr
 from ace_step_runner import PROJECT_ROOT, generate_track
 
 
+def _reference_audio_path(value) -> str | None:
+    """Resolve Gradio Audio (filepath) to a non-empty path string if present."""
+    if value is None:
+        return None
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    if isinstance(value, dict) and value.get("path"):
+        p = str(value["path"]).strip()
+        return p or None
+    return None
+
+
 def on_generate(
     song_title: str,
+    audio2audio: bool,
+    reference_audio,
+    refer_audio_strength: float,
     tags: str,
     duration_mode: str,
     duration_sec: float,
@@ -15,19 +30,29 @@ def on_generate(
     instrumental: bool,
     progress=gr.Progress(track_tqdm=True),
 ):
+    if not (song_title or "").strip():
+        yield None, "Enter **Song title**."
+        return
     if not (tags or "").strip():
         yield None, "Enter **Tags** (song description)."
+        return
+
+    ref = _reference_audio_path(reference_audio) if audio2audio else None
+    if audio2audio and not ref:
+        yield None, "Enable **Audio2Audio**: upload or record **Reference audio**."
         return
 
     try:
         d = -1.0 if duration_mode == "Auto" else duration_sec
 
         path, msg = generate_track(
-            song_title=song_title or "untitled",
+            song_title=(song_title or "").strip(),
             caption=tags,
             lyrics=lyrics or "",
             duration_sec=d,
             instrumental=instrumental,
+            reference_audio=ref,
+            audio_cover_strength=refer_audio_strength if ref else 1.0,
             progress=progress,
         )
         if path is None:
@@ -39,7 +64,7 @@ def on_generate(
 
 
 def build_ui():
-    with gr.Blocks(title="ACE-Step — simple generator") as demo:
+    with gr.Blocks(title="Music Generator") as demo:
         gr.Markdown("## Music Generation", elem_id="app_title")
         with gr.Row():
             song_title = gr.Textbox(
@@ -48,6 +73,39 @@ def build_ui():
                 lines=1,
                 elem_id="song_title",
             )
+        audio2audio = gr.Checkbox(label="Enable Audio2Audio", value=False)
+        with gr.Group(visible=False) as audio2audio_group:
+            reference_audio = gr.Audio(
+                label="Reference audio (for Audio2Audio)",
+                type="filepath",
+                sources=["upload", "microphone"],
+                elem_id="reference_audio",
+            )
+            refer_audio_strength = gr.Slider(
+                minimum=0.0,
+                maximum=1.0,
+                value=0.5,
+                step=0.01,
+                label="Refer audio strength",
+                info="Higher = closer to the reference clip; lower = follow tags/lyrics more.",
+            )
+
+        def _toggle_a2a(enabled: bool):
+            """Hide section when off; clear reference + reset strength so UI matches plain text2music."""
+            if enabled:
+                return gr.update(visible=True), gr.update(), gr.update()
+            return (
+                gr.update(visible=False),
+                gr.update(value=None),
+                gr.update(value=0.5),
+            )
+
+        audio2audio.change(
+            _toggle_a2a,
+            inputs=[audio2audio],
+            outputs=[audio2audio_group, reference_audio, refer_audio_strength],
+        )
+
         tags = gr.Textbox(
             label="Tags",
             lines=3,
@@ -81,8 +139,12 @@ def build_ui():
         )
         instrumental = gr.Checkbox(label="Instrumental", value=False)
 
+        def _generate_enabled(song_title_val: str, tags_val: str):
+            ok = bool((song_title_val or "").strip()) and bool((tags_val or "").strip())
+            return gr.update(interactive=ok)
+
         with gr.Row():
-            go = gr.Button("Generate", variant="primary")
+            go = gr.Button("Generate", variant="primary", interactive=False)
         out_audio = gr.Audio(
             label="Output",
             type="filepath",
@@ -91,9 +153,23 @@ def build_ui():
         )
         status = gr.Markdown(elem_id="status_line", padding=False, container=False)
 
+        song_title.change(_generate_enabled, inputs=[song_title, tags], outputs=[go])
+        tags.change(_generate_enabled, inputs=[song_title, tags], outputs=[go])
+        demo.load(_generate_enabled, inputs=[song_title, tags], outputs=[go])
+
         go.click(
             on_generate,
-            inputs=[song_title, tags, duration_mode, duration_sec, lyrics, instrumental],
+            inputs=[
+                song_title,
+                audio2audio,
+                reference_audio,
+                refer_audio_strength,
+                tags,
+                duration_mode,
+                duration_sec,
+                lyrics,
+                instrumental,
+            ],
             outputs=[out_audio, status],
             show_progress="minimal",
             show_progress_on=out_audio,

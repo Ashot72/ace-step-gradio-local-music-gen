@@ -120,6 +120,8 @@ def generate_track(
     lyrics: str,
     duration_sec: float,
     instrumental: bool,
+    reference_audio: Optional[str] = None,
+    audio_cover_strength: float = 1.0,
     progress=None,
 ) -> tuple[Optional[Path], str]:
     """
@@ -146,6 +148,14 @@ def generate_track(
 
     dur = duration_sec if duration_sec > 0 else -1.0
 
+    ref_path: Optional[str] = None
+    if reference_audio:
+        p = Path(reference_audio.strip())
+        if p.is_file():
+            ref_path = str(p)
+
+    strength = float(audio_cover_strength) if ref_path else 1.0
+
     params = GenerationParams(
         task_type="text2music",
         caption=caption,
@@ -153,6 +163,8 @@ def generate_track(
         instrumental=inst_flag,
         vocal_language=vocal_language,
         duration=dur,
+        reference_audio=ref_path,
+        audio_cover_strength=strength,
     )
 
     config = GenerationConfig(
