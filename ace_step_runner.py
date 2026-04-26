@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 import re
 import shutil
 import traceback
@@ -37,8 +36,6 @@ _PIPELINE_DEFAULTS: dict[str, str] = {
 
 _dit_handler: Any = None
 _llm_handler: Any = None
-
-_log = logging.getLogger(__name__)
 
 
 def _cfg(name: str) -> str:
@@ -303,28 +300,6 @@ def generate_repaint(
         instrumental=inst_flag,
         vocal_language=vocal_language,
         audio_cover_strength=audio_cover_strength,
-    )
-
-    _log.info(
-        "[music-gen repaint] lyrics_final=%r | vocal_language=%r instrumental=%s | caption=%r | "
-        "repainting [%.2fs, %.2fs] audio_cover_strength=%s | params (subset): %s",
-        lyrics_final,
-        vocal_language,
-        inst_flag,
-        (caption or "").strip()[:200],
-        repainting_start,
-        repainting_end,
-        audio_cover_strength,
-        {
-            "task_type": params.task_type,
-            "lyrics": params.lyrics,
-            "caption": (params.caption or "")[:200] if params.caption else params.caption,
-            "instrumental": params.instrumental,
-            "vocal_language": params.vocal_language,
-            "repainting_start": params.repainting_start,
-            "repainting_end": params.repainting_end,
-            "audio_cover_strength": params.audio_cover_strength,
-        },
     )
 
     config = _generation_config(use_random_seed=True)

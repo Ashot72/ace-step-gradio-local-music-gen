@@ -27,10 +27,6 @@ def build_ui():
 
 
 if __name__ == "__main__":
-    import logging
-
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
-
     parser = argparse.ArgumentParser(description="Minimal ACE-Step 1.5 Gradio UI (XPU).")
     parser.add_argument("--server-name", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=7860)
