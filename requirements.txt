@@ -1,4 +1,5 @@
 # PyTorch (Intel XPU wheels — keep this line first for pip)
+# Install: python -m pip install -r requirements.txt  (use if pip.exe is blocked by policy)
 --extra-index-url https://download.pytorch.org/whl/xpu
 torch
 torchaudio
@@ -29,6 +30,8 @@ gradio==6.2.0
 # Audio & numerics
 soundfile>=0.13.1
 scipy>=1.10.1
+pydub>=0.25.1
+static-ffmpeg
 
 # Plotting
 matplotlib>=3.7.5

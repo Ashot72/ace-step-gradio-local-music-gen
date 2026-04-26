@@ -16,7 +16,21 @@ I extended the app with an Audio2Audio feature. You can now upload or record a r
 
 A new control, “Refer audio strength” (0–1), determines how strongly the output follows the reference audio versus your tags and lyrics:
 
+#### 🎛️ Generating Music with Repainting, Edit (Cover) & Extend (Complete)
 
+This project demonstrates a refinement-based AI music generation workflow built around three core operations:
+
+🎨 Repainting
+
+Modify only a selected time segment of an existing audio track while preserving the rest. Ideal for fixing or reshaping specific sections without regenerating the full song.
+
+🔁 Edit (Cover)
+
+Reimagine an entire track as a cover version using new captions, lyrics, and style controls. The whole song is reprocessed while maintaining the original structure as a reference.
+
+➕ Extend
+
+Complete unfinished music from a given stem (e.g., drums or “others” instruments). The model continues the composition into a full track using prompts, lyrics, and optional duration settings.
 
 ![ACE-Step](ACE-step-1.5.png)
 
@@ -51,3 +65,5 @@ Open the Run view (View → Run or Ctrl+Shift+D) to access the debug configurati
 📺 **Video (Music Generation)** [Watch on YouTube](https://youtu.be/Bi1mNCWind8) 
 
 📺 **Video (Audio2Audio)** [Watch on YouTube](https://youtu.be/_mPnARfiBCc) 
+
+📺 **Video (Output Refinement)** [Watch on YouTube](https://youtu.be/Bi1mNCWind8) 

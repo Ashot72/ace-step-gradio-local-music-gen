@@ -1,13 +1,23 @@
-"""Lazy-loaded ACE-Step 1.5 inference for the minimal Gradio UI (Intel XPU)."""
+"""ACE-Step 1.5 inference for the minimal Gradio UI (Intel XPU)."""
 
-import os
+from __future__ import annotations
+
+import logging
 import re
 import shutil
+import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
+from acestep.inference import GenerationConfig, GenerationParams, generate_music
+
 PROJECT_ROOT = Path(__file__).resolve().parent
+
+
+def gradio_traceback_markdown() -> str:
+    """Markdown code block with current exception traceback (for Gradio status)."""
+    return f"```\n{traceback.format_exc()}\n```"
 
 # Pipeline defaults
 _PIPELINE_DEFAULTS: dict[str, str] = {
@@ -19,6 +29,7 @@ _PIPELINE_DEFAULTS: dict[str, str] = {
     "ACESTEP_COMPILE_MODEL": "false",
     "ACESTEP_OFFLOAD_DIT_TO_CPU": "false",
     "ACESTEP_AUDIO_FORMAT": "wav",
+    "ACESTEP_MP3_BITRATE": "192k",
     "ACESTEP_QUANTIZATION": "",
     "ACESTEP_VOCAL_LANGUAGE": "unknown",
     "ACESTEP_DOWNLOAD_SOURCE": "",
@@ -27,19 +38,65 @@ _PIPELINE_DEFAULTS: dict[str, str] = {
 _dit_handler: Any = None
 _llm_handler: Any = None
 
+_log = logging.getLogger(__name__)
+
 
 def _cfg(name: str) -> str:
     return _PIPELINE_DEFAULTS[name]
 
 
 def _cfg_bool(name: str) -> bool:
-    return _PIPELINE_DEFAULTS[name].strip().lower() == "true"
+    return _PIPELINE_DEFAULTS[name].lower() == "true"
 
 
 def _safe_filename(name: str, fallback: str = "track") -> str:
     name = (name or "").strip() or fallback
     name = re.sub(r'[<>:"/\\|?*]', "_", name)
     return name[:120] if len(name) > 120 else name
+
+
+def _wav_to_mp3(wav: Path, bitrate: str) -> Optional[Path]:
+    import static_ffmpeg
+    from pydub import AudioSegment
+
+    static_ffmpeg.add_paths()
+    mp3 = wav.with_suffix(".mp3")
+    try:
+        AudioSegment.from_file(str(wav)).export(str(mp3), format="mp3", bitrate=bitrate)
+    except Exception:
+        return None
+    try:
+        wav.unlink(missing_ok=True)
+    except OSError:
+        pass
+    return mp3
+
+
+def _text2music_lyrics_and_flags(lyrics: str, instrumental: bool) -> tuple[str, str, bool]:
+    """(lyrics_for_params, vocal_language, instrumental_flag) for text2music / complete."""
+    if instrumental:
+        return "[Instrumental]", "unknown", True
+    return (lyrics or "").strip(), _cfg("ACESTEP_VOCAL_LANGUAGE"), False
+
+
+def _generation_config(
+    *,
+    use_random_seed: bool,
+    seeds: Optional[list[int]] = None,
+) -> GenerationConfig:
+    return GenerationConfig(
+        batch_size=1,
+        use_random_seed=use_random_seed,
+        seeds=seeds,
+        audio_format=_cfg("ACESTEP_AUDIO_FORMAT"),
+    )
+
+
+def _require_source_audio_path(src_audio: str) -> Path:
+    p = Path(src_audio)
+    if not p.is_file():
+        raise ValueError("Source audio file is required.")
+    return p
 
 
 def load_pipeline() -> None:
@@ -68,7 +125,7 @@ def load_pipeline() -> None:
         llm_handler = LLMHandler()
 
         use_flash = dit_handler.is_flash_attention_available(device)
-        prefer_source = _cfg("ACESTEP_DOWNLOAD_SOURCE").strip() or None
+        prefer_source = _cfg("ACESTEP_DOWNLOAD_SOURCE") or None
         if prefer_source == "auto":
             prefer_source = None
 
@@ -80,7 +137,7 @@ def load_pipeline() -> None:
             compile_model=compile_model,
             offload_to_cpu=offload_to_cpu,
             offload_dit_to_cpu=_cfg_bool("ACESTEP_OFFLOAD_DIT_TO_CPU"),
-            quantization=_cfg("ACESTEP_QUANTIZATION").strip() or None,
+            quantization=_cfg("ACESTEP_QUANTIZATION") or None,
             prefer_source=prefer_source,
         )
         if not ok:
@@ -113,65 +170,15 @@ def load_pipeline() -> None:
         raise
 
 
-def generate_track(
+def _run_generation(
     *,
-    song_title: str,
-    caption: str,
-    lyrics: str,
-    duration_sec: float,
-    instrumental: bool,
-    reference_audio: Optional[str] = None,
-    audio_cover_strength: float = 1.0,
+    params: GenerationParams,
+    config: GenerationConfig,
+    filename_prefix: str,
     progress=None,
 ) -> tuple[Optional[Path], str]:
-    """
-    Returns (path_to_first_audio_file_or_none, status_markdown).
-
-    Uses acestep.inference.generate_music with GenerationParams defaults for advanced knobs.
-    """
-    from acestep.inference import GenerationConfig, GenerationParams, generate_music
-
+    """Shared path: generate_music, rename output, return (path, markdown status)."""
     load_pipeline()
-    caption = (caption or "").strip()
-    if not caption:
-        raise ValueError("Prompt (caption) is required.")
-
-    lyrics_in = (lyrics or "").strip()
-    if instrumental:
-        lyrics_final = "[Instrumental]"
-        vocal_language = "unknown"
-        inst_flag = True
-    else:
-        lyrics_final = lyrics_in
-        vocal_language = _cfg("ACESTEP_VOCAL_LANGUAGE")
-        inst_flag = False
-
-    dur = duration_sec if duration_sec > 0 else -1.0
-
-    ref_path: Optional[str] = None
-    if reference_audio:
-        p = Path(reference_audio.strip())
-        if p.is_file():
-            ref_path = str(p)
-
-    strength = float(audio_cover_strength) if ref_path else 1.0
-
-    params = GenerationParams(
-        task_type="text2music",
-        caption=caption,
-        lyrics=lyrics_final,
-        instrumental=inst_flag,
-        vocal_language=vocal_language,
-        duration=dur,
-        reference_audio=ref_path,
-        audio_cover_strength=strength,
-    )
-
-    config = GenerationConfig(
-        batch_size=1,
-        use_random_seed=True,
-        audio_format=_cfg("ACESTEP_AUDIO_FORMAT"),
-    )
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     save_dir = PROJECT_ROOT / "output"
@@ -195,20 +202,207 @@ def generate_track(
     if not raw_path or not raw.is_file():
         return None, "```\nNo audio file was written.\n```"
 
-    base = _safe_filename(song_title, fallback=f"track_{stamp}")
-    ext = raw.suffix or ".wav"
-    # Upstream writes a UUID filename; keep one file: {title}_{timestamp}.wav and delete the UUID file.
-    dest = save_dir / f"{base}_{stamp}{ext}"
+    base = _safe_filename(filename_prefix, fallback=f"track_{stamp}")
+    dest = save_dir / f"{base}_{stamp}{raw.suffix}"
     try:
         shutil.copy2(raw, dest)
         raw.unlink(missing_ok=True)
     except OSError:
         dest = raw
 
-    return dest, result.status_message or "Done."
+    out = dest
+    if dest.is_file():
+        mp3 = _wav_to_mp3(dest, _cfg("ACESTEP_MP3_BITRATE"))
+        if mp3 is not None:
+            out = mp3
+
+    return out, result.status_message or "Done."
 
 
-if __name__ == "__main__":
-    # CLI warmup: venv active; optional upstream XPU env (see ACE-Step start_gradio_ui_xpu.bat).
-    load_pipeline()
-    print("Pipeline ready.")
+def generate_track(
+    *,
+    song_title: str,
+    caption: str,
+    lyrics: str,
+    duration_sec: float,
+    instrumental: bool,
+    reference_audio: Optional[str] = None,
+    audio_cover_strength: float = 1.0,
+    seed: Optional[int] = None,
+    progress=None,
+) -> tuple[Optional[Path], str]:
+    """
+    Returns (path_to_first_audio_file_or_none, status_markdown).
+
+    Uses acestep.inference.generate_music with GenerationParams defaults for advanced knobs.
+    ``seed=None`` uses random seed; otherwise fixed RNG.
+    """
+    lyrics_final, vocal_language, inst_flag = _text2music_lyrics_and_flags(lyrics, instrumental)
+
+    dur = duration_sec if duration_sec > 0 else -1.0
+
+    ref_path: Optional[str] = None
+    if reference_audio:
+        p = Path(reference_audio)
+        if p.is_file():
+            ref_path = str(p)
+
+    params = GenerationParams(
+        task_type="text2music",
+        caption=caption,
+        lyrics=lyrics_final,
+        instrumental=inst_flag,
+        vocal_language=vocal_language,
+        duration=dur,
+        reference_audio=ref_path,
+        audio_cover_strength=audio_cover_strength if ref_path else 1.0,
+    )
+
+    if seed is not None:
+        use_random = False
+        seed_list = [int(seed)]
+    else:
+        use_random = True
+        seed_list = None
+    config = _generation_config(use_random_seed=use_random, seeds=seed_list)
+
+    return _run_generation(
+        params=params,
+        config=config,
+        filename_prefix=song_title,
+        progress=progress,
+    )
+
+
+def generate_repaint(
+    *,
+    song_title: str,
+    src_audio: str,
+    repainting_start: float,
+    repainting_end: float,
+    caption: str,
+    lyrics: str = "",
+    instrumental: bool = False,
+    audio_cover_strength: float = 1.0,
+    progress=None,
+) -> tuple[Optional[Path], str]:
+    lyrics_final, vocal_language, inst_flag = _text2music_lyrics_and_flags(lyrics, instrumental)
+
+    p = _require_source_audio_path(src_audio)
+
+    if repainting_end >= 0.0 and repainting_end <= repainting_start:
+        raise ValueError("Repainting end must be greater than start (or use -1 for end of file).")
+
+    params = GenerationParams(
+        task_type="repaint",
+        src_audio=str(p),
+        repainting_start=repainting_start,
+        repainting_end=repainting_end,
+        caption=caption,
+        lyrics=lyrics_final,
+        instrumental=inst_flag,
+        vocal_language=vocal_language,
+        audio_cover_strength=audio_cover_strength,
+    )
+
+    _log.info(
+        "[music-gen repaint] lyrics_final=%r | vocal_language=%r instrumental=%s | caption=%r | "
+        "repainting [%.2fs, %.2fs] audio_cover_strength=%s | params (subset): %s",
+        lyrics_final,
+        vocal_language,
+        inst_flag,
+        (caption or "").strip()[:200],
+        repainting_start,
+        repainting_end,
+        audio_cover_strength,
+        {
+            "task_type": params.task_type,
+            "lyrics": params.lyrics,
+            "caption": (params.caption or "")[:200] if params.caption else params.caption,
+            "instrumental": params.instrumental,
+            "vocal_language": params.vocal_language,
+            "repainting_start": params.repainting_start,
+            "repainting_end": params.repainting_end,
+            "audio_cover_strength": params.audio_cover_strength,
+        },
+    )
+
+    config = _generation_config(use_random_seed=True)
+
+    return _run_generation(
+        params=params,
+        config=config,
+        filename_prefix=f"{song_title}_repaint",
+        progress=progress,
+    )
+
+
+def generate_cover_edit(
+    *,
+    song_title: str,
+    src_audio: str,
+    caption: str,
+    lyrics: str = "",
+    instrumental: bool = False,
+    audio_cover_strength: float,
+    progress=None,
+) -> tuple[Optional[Path], str]:
+    lyrics_final, vocal_language, inst_flag = _text2music_lyrics_and_flags(lyrics, instrumental)
+
+    p = _require_source_audio_path(src_audio)
+
+    params = GenerationParams(
+        task_type="cover",
+        src_audio=str(p),
+        caption=caption,
+        lyrics=lyrics_final,
+        instrumental=inst_flag,
+        vocal_language=vocal_language,
+        audio_cover_strength=audio_cover_strength,
+    )
+
+    config = _generation_config(use_random_seed=True)
+
+    return _run_generation(
+        params=params,
+        config=config,
+        filename_prefix=f"{song_title}_cover",
+        progress=progress,
+    )
+
+
+def generate_extend_complete(
+    *,
+    song_title: str,
+    src_audio: str,
+    lyrics: str,
+    instrumental: bool,
+    caption: str,
+    duration_sec: float,
+    progress=None,
+) -> tuple[Optional[Path], str]:
+    lyrics_final, vocal_language, inst_flag = _text2music_lyrics_and_flags(lyrics, instrumental)
+
+    p = _require_source_audio_path(src_audio)
+
+    dur = duration_sec if duration_sec > 0 else -1.0
+
+    params = GenerationParams(
+        task_type="complete",
+        src_audio=str(p),
+        caption=caption,
+        lyrics=lyrics_final,
+        instrumental=inst_flag,
+        vocal_language=vocal_language,
+        duration=dur,
+    )
+
+    config = _generation_config(use_random_seed=True)
+
+    return _run_generation(
+        params=params,
+        config=config,
+        filename_prefix=f"{song_title}_extend",
+        progress=progress,
+    )
+

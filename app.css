@@ -1,3 +1,13 @@
+#main_tabs {
+  margin-top: 0.5rem;
+}
+
+/* Center tab labels (Gradio 6 Tabs: button row is a flex .tab-container) */
+#main_tabs .tab-container,
+#refine_tabs .tab-container {
+  justify-content: center !important;
+}
+
 #app_title {
   margin-bottom: 0.75rem;
   text-align: center;
@@ -8,14 +18,23 @@
   text-align: center;
 }
 
-/* Song title: Gradio block can get overflow:auto + min-width quirks → bogus scrollbar */
-#song_title {
+/* Single-line song title: Gradio block can get overflow:auto + min-width quirks → bogus scrollbar */
+#song_title,
+#repaint_song_title,
+#cover_song_title,
+#extend_song_title {
   overflow: visible !important;
   min-width: 0 !important;
 }
 
 #song_title textarea,
-#song_title input {
+#song_title input,
+#repaint_song_title textarea,
+#repaint_song_title input,
+#cover_song_title textarea,
+#cover_song_title input,
+#extend_song_title textarea,
+#extend_song_title input {
   overflow-x: hidden !important;
   overflow-y: hidden !important;
 }
@@ -31,8 +50,39 @@
 }
 
 /* Output empty state: hide default solo / music glyph (no audio yet) */
-#out_audio:not(:has(audio)) svg {
+#out_audio:not(:has(audio)) svg,
+#repaint_audio:not(:has(audio)) svg,
+#cover_audio:not(:has(audio)) svg,
+#extend_audio:not(:has(audio)) svg {
   display: none !important;
+}
+
+/* Refine section heading + tabs */
+#refine_heading {
+  text-align: center;
+  margin-top: 0.25rem;
+}
+
+#refine_heading h1,
+#refine_heading h2,
+#refine_heading h3 {
+  text-align: center;
+}
+
+#refine_tabs {
+  margin-top: 0.5rem;
+}
+
+/* Radio + slider / number on one row: minimal space between */
+.tight-inline-row.form,
+div.tight-inline-row {
+  gap: 0.2rem !important;
+  column-gap: 0.2rem !important;
+  align-items: flex-end !important;
+}
+
+.tight-inline-row .form {
+  margin-bottom: 0 !important;
 }
 
 /* Footer: Gradio treats footer_links=[] as falsy and still shows API / Gradio / Settings — hide here */

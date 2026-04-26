@@ -22,14 +22,14 @@ echo [2/6] Upgrading pip...
 python -m pip install --upgrade pip
 if errorlevel 1 exit /b 1
 echo [3/6] requirements.txt
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 if errorlevel 1 (
-    echo pip install failed.
+    echo python -m pip install failed.
     exit /b 1
 )
 echo.
 echo [4/6] ace-step --no-deps
-pip install "%ACESTEP_PIP_SPEC%" --no-deps
+python -m pip install "%ACESTEP_PIP_SPEC%" --no-deps
 if errorlevel 1 (
     echo ace-step install failed.
     exit /b 1
@@ -46,7 +46,7 @@ if errorlevel 1 (
     exit /b 1
 )
 set "ACESTEP_PROJECT_ROOT=%cd%"
-echo [6/6] Checkpoints
+echo [6/6] Checkpoints - turbo (main) model bundle
 python -m acestep.model_downloader --model main
 if errorlevel 1 (
     echo Checkpoint download failed.

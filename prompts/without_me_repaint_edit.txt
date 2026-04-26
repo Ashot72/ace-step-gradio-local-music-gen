@@ -1,0 +1,50 @@
+REPAINT
+
+seconds 60 - 130
+caption: 
+
+early-2000s hip-hop, upbeat bounce, strutting bass, crisp snare, playful hype hook energy, sarcastic male rap vocal, dry close vocal with light room, radio-friendly mix, moderate tempo
+
+lyrics: 
+
+[Verse - fast, cocky]
+They said the room was quiet — I kicked the door in loud
+Name on the marquee now, I’m drawing out the crowd
+You want the old formula? I’m mixing something new
+If you’re still in the hallway, I’m already in the room
+[ad-lib - under breath]
+Watch this…
+
+Cover Strength 1
+
+
+----------------------------------
+
+seconds 60 - 130
+caption: 
+
+loud party hip-hop, trunk-rattle 808, crisp handclaps, sub bass, hyped male rap vocal, tight double-tracked ad-libs, big hook energy, clean club mix
+
+lyrics:
+
+[Chorus - shout-along]
+Hands in the roof like we’re taxin’ the night
+I’m not here to argue — I’m here to get height
+If you want the old rules, go practice polite
+I’m the spark in the corner that’s settin’ it alight
+
+Cover Strength 0.5
+
+
+--------------------------------------------------------------------------
+EDIT
+
+lyrics, tags from redemption_road.txt
+
+Cover Strength 00.4
+
+---------
+
+lyrics, tags from redemption_road.txt
+
+Cover strength 0.45
