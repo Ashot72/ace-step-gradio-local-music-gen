@@ -33,7 +33,7 @@ def on_generate(
 ):
     ref = (reference_audio or "").strip() if audio2audio else None
     if audio2audio and not ref:
-        yield None, "", gr.update()
+        yield None, ""
         return
 
     try:
@@ -42,7 +42,7 @@ def on_generate(
         seed: int | None = None
         if (seed_mode or "").strip() == _GEN_SEED_FIXED:
             if seed_value is None:
-                yield None, "Enter a **Seed value** when using fixed seed.", gr.update()
+                yield None, "Enter a **Seed value** when using fixed seed."
                 return
             seed = int(seed_value)
 
@@ -58,18 +58,18 @@ def on_generate(
             progress=progress,
         )
         if path is None:
-            yield None, msg, gr.update()
+            yield None, msg
         else:
             p = str(path)
-            yield p, msg, p
+            yield p, msg
     except Exception:
-        yield None, gradio_traceback_markdown(), gr.update()
+        yield None, gradio_traceback_markdown()
 
 
 def build_generate_section(
-    last_output_path: gr.State, demo: gr.Blocks
+    demo: gr.Blocks,
 ) -> None:
-    """Build main generate tab; pass output path state and parent Blocks from `app.build_ui`."""
+    """Build main generate tab; pass parent Blocks from `app.build_ui`."""
     gr.Markdown("## Generate Music", elem_id="app_title")
     with gr.Row():
         song_title = gr.Textbox(
@@ -214,7 +214,7 @@ def build_generate_section(
             seed_mode,
             seed_value,
         ],
-        outputs=[out_audio, status, last_output_path],
+        outputs=[out_audio, status],
         show_progress="minimal",
         show_progress_on=out_audio,
     )

@@ -13,11 +13,9 @@ from ui import (
 
 def build_ui():
     with gr.Blocks(title="Music Generator") as demo:
-        last_output_path = gr.State(value=None)
-
         with gr.Tabs(elem_id="main_tabs"):
             with gr.Tab("Generate Music"):
-                build_generate_section(last_output_path, demo)
+                build_generate_section(demo)
             with gr.Tab("Refine Output"):
                 gr.Markdown("## Refine Output", elem_id="refine_heading")
                 with gr.Tabs(elem_id="refine_tabs"):
