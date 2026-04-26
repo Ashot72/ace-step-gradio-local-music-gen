@@ -73,7 +73,7 @@ def _text2music_lyrics_and_flags(lyrics: str, instrumental: bool) -> tuple[str, 
     """(lyrics_for_params, vocal_language, instrumental_flag) for text2music / complete."""
     if instrumental:
         return "[Instrumental]", "unknown", True
-    return (lyrics or "").strip(), _cfg("ACESTEP_VOCAL_LANGUAGE"), False
+    return lyrics.strip(), _cfg("ACESTEP_VOCAL_LANGUAGE"), False
 
 
 def _generation_config(
@@ -228,12 +228,6 @@ def generate_track(
     seed: Optional[int] = None,
     progress=None,
 ) -> tuple[Optional[Path], str]:
-    """
-    Returns (path_to_first_audio_file_or_none, status_markdown).
-
-    Uses acestep.inference.generate_music with GenerationParams defaults for advanced knobs.
-    ``seed=None`` uses random seed; otherwise fixed RNG.
-    """
     lyrics_final, vocal_language, inst_flag = _text2music_lyrics_and_flags(lyrics, instrumental)
 
     dur = duration_sec if duration_sec > 0 else -1.0
@@ -278,7 +272,7 @@ def generate_repaint(
     repainting_start: float,
     repainting_end: float,
     caption: str,
-    lyrics: str = "",
+    lyrics: str,
     instrumental: bool = False,
     audio_cover_strength: float = 1.0,
     progress=None,
@@ -317,7 +311,7 @@ def generate_cover_edit(
     song_title: str,
     src_audio: str,
     caption: str,
-    lyrics: str = "",
+    lyrics: str,
     instrumental: bool = False,
     audio_cover_strength: float,
     progress=None,
